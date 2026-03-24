@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+python-chess
+requests
+python-multipart
+python-dotenv
+pywebview

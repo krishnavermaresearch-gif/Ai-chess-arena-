@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Arena</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,300;9..144,600&display=swap" rel="stylesheet">
+  <!-- Vendor CSS must load before vendor JS -->
+  <link rel="stylesheet" href="/static/vendor/chessboard.min.css">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="shell">
+
+    <!-- ── LEFT SIDEBAR ── -->
+    <aside class="sidebar">
+      <header class="brand">
+        <div class="brand-icon">♟</div>
+        <div>
+          <h1>AI Arena</h1>
+          <p class="brand-sub">AI vs AI · Ollama</p>
+        </div>
+      </header>
+
+      <!-- Players -->
+      <section class="panel">
+        <div class="panel-label">White ○</div>
+        <select id="whiteType" style="margin-bottom:0.5rem; width:100%; padding:0.4rem; background:var(--bg-card); color:#fff; border:1px solid #333; border-radius:4px;">
+          <option value="ai" selected>AI Match</option>
+          <option value="human">Human Player</option>
+        </select>
+        <input id="whiteModel" type="text" value="gpt-4o" placeholder="gpt-4o, claude-3-5-sonnet, gemini-1.5-flash..." autocomplete="off">
+        <div class="panel-label" style="margin-top:1rem">Black ●</div>
+        <select id="blackType" style="margin-bottom:0.5rem; width:100%; padding:0.4rem; background:var(--bg-card); color:#fff; border:1px solid #333; border-radius:4px;">
+          <option value="ai" selected>AI Match</option>
+          <option value="human">Human Player</option>
+        </select>
+        <input id="blackModel" type="text" value="claude-3-5-sonnet-20241022" placeholder="e.g. gpt-4o, grok-beta, llama3..." autocomplete="off">
+        <div class="panel-label" style="margin-top:1rem">Delay between moves (ms)</div>
+        <input id="delay" type="number" value="1200" min="200" max="10000" step="100">
+      </section>
+
+      <!-- Controls -->
+      <div class="controls">
+        <button id="startBtn" class="btn-primary">▶ Start</button>
+        <button id="stopBtn"  class="btn-danger"  disabled>■ Stop</button>
+        <button id="flipBtn"  class="btn-ghost">⇅ Flip</button>
+        <button id="settingsBtn" class="btn-ghost" onclick="document.getElementById('settingsModal').style.display='flex'">⚙ Settings</button>
+      </div>
+
+      <!-- Settings Modal -->
+      <div id="settingsModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:999; align-items:center; justify-content:center;">
+        <div style="background:#1a1a2e; border:1px solid #333; border-radius:12px; padding:2rem; width:420px; max-width:90vw;">
+          <h3 style="color:#e8e8e8; margin:0 0 1rem 0;">⚙ API Key Settings</h3>
+          <p style="color:#888; font-size:0.8rem; margin-bottom:1rem;">Paste your API keys below. They will be saved to a local <code>.env</code> file on the server. Leave blank to skip a provider.</p>
+          <label style="color:#aaa; font-size:0.75rem;">OpenAI (gpt-4o, o1-mini...)</label>
+          <input id="key_openai" type="password" placeholder="sk-..." style="width:100%; padding:0.5rem; margin-bottom:0.7rem; background:#111; color:#fff; border:1px solid #444; border-radius:6px;">
+          <label style="color:#aaa; font-size:0.75rem;">Anthropic (claude-3-5-sonnet...)</label>
+          <input id="key_anthropic" type="password" placeholder="sk-ant-..." style="width:100%; padding:0.5rem; margin-bottom:0.7rem; background:#111; color:#fff; border:1px solid #444; border-radius:6px;">
+          <label style="color:#aaa; font-size:0.75rem;">Google Gemini (gemini-1.5-flash...)</label>
+          <input id="key_gemini" type="password" placeholder="AIzaSy..." style="width:100%; padding:0.5rem; margin-bottom:0.7rem; background:#111; color:#fff; border:1px solid #444; border-radius:6px;">
+          <label style="color:#aaa; font-size:0.75rem;">xAI Grok (grok-beta...)</label>
+          <input id="key_xai" type="password" placeholder="xai-..." style="width:100%; padding:0.5rem; margin-bottom:1rem; background:#111; color:#fff; border:1px solid #444; border-radius:6px;">
+          <div style="display:flex; gap:0.5rem; justify-content:flex-end;">
+            <button onclick="document.getElementById('settingsModal').style.display='none'" style="padding:0.5rem 1rem; background:#333; color:#fff; border:none; border-radius:6px; cursor:pointer;">Cancel</button>
+            <button id="saveKeysBtn" style="padding:0.5rem 1rem; background:#c9a227; color:#000; border:none; border-radius:6px; cursor:pointer; font-weight:bold;">💾 Save Keys</button>
+          </div>
+          <p id="settingsStatus" style="color:#4ade80; font-size:0.8rem; margin-top:0.7rem; display:none;"></p>
+        </div>
+      </div>
+
+      <!-- Score -->
+      <section class="scoreboard">
+        <div class="score-cell">
+          <span class="score-num" id="scoreWhite">0</span>
+          <span class="score-lbl">White wins</span>
+        </div>
+        <div class="score-divider">/</div>
+        <div class="score-cell">
+          <span class="score-num" id="scoreDraws">0</span>
+          <span class="score-lbl">Draws</span>
+        </div>
+        <div class="score-divider">/</div>
+        <div class="score-cell">
+          <span class="score-num" id="scoreBlack">0</span>
+          <span class="score-lbl">Black wins</span>
+        </div>
+      </section>
+
+      <!-- Move history -->
+      <section class="panel moves-panel">
+        <div class="panel-label">Move history</div>
+        <div id="moveHistory" class="move-list"></div>
+      </section>
+    </aside>
+
+    <!-- ── MAIN BOARD AREA ── -->
+    <main class="board-col">
+      <div class="player-tag" id="tagBlack">
+        <span class="dot dot-black"></span>
+        <span id="nameBlack">Black</span>
+        <span class="thinking" id="thinkBlack" style="display:none">thinking…</span>
+      </div>
+
+      <div class="board-wrap">
+        <div id="board1"></div>
+      </div>
+
+      <div class="player-tag" id="tagWhite">
+        <span class="dot dot-white"></span>
+        <span id="nameWhite">White</span>
+        <span class="thinking" id="thinkWhite" style="display:none">thinking…</span>
+      </div>
+
+      <div id="gameStatus" class="status-bar">Waiting to start…</div>
+    </main>
+
+    <!-- ── RIGHT SIDEBAR ── -->
+    <aside class="sidebar sidebar-right">
+      <!-- Chat -->
+      <section class="panel chat-panel" style="display: flex; flex-direction: column;">
+        <div class="panel-label">Live chat</div>
+        <div id="aiChat" class="chat-log" style="flex: 1; border-bottom: 1px solid #333; padding-bottom: 0.5rem; margin-bottom: 0.5rem;">
+          <span class="chat-placeholder">Chat will appear here…</span>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+          <input type="text" id="userChatInput" placeholder="Say something to the AI..." autocomplete="off" style="flex:1; background:var(--bg-card); border:1px solid #333; color:#fff; padding:0.4rem; border-radius:4px;">
+          <button id="sendChatBtn" class="btn-ghost" style="padding:0.4rem 0.8rem;">Send</button>
+        </div>
+      </section>
+
+      <!-- Activity log -->
+      <section class="panel log-panel">
+        <div class="panel-label">Activity log</div>
+        <div id="logs" class="log-list">
+          <div class="log-sys">System ready.</div>
+        </div>
+      </section>
+    </aside>
+
+  </div><!-- .shell -->
+
+  <!-- Vendor JS (order matters: jQuery → chess.js → chessboard.js) -->
+  <script src="/static/vendor/jquery.min.js"></script>
+  <script src="/static/vendor/chess.min.js"></script>
+  <script src="/static/vendor/chessboard.min.js"></script>
+  <script src="/script.js?v=8"></script>
+</body>
+</html>
