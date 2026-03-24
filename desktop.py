@@ -12,29 +12,46 @@ import time
 import sys
 import os
 
+
 def get_base_path():
     """Get path to bundled resources (PyInstaller) or project root (dev)."""
-    if getattr(sys, 'frozen', False):
+    if getattr(sys, "frozen", False):
         return sys._MEIPASS
     return os.path.dirname(os.path.abspath(__file__))
 
+
 def start_server(base_path):
     """Start the FastAPI server in a background thread."""
-    # When frozen, we need to chdir so main.py can find its files
+    # Ensure the working directory has all our files
     os.chdir(base_path)
-    
+
+    # Add base_path to sys.path so 'main' can be imported as a module
+    if base_path not in sys.path:
+        sys.path.insert(0, base_path)
+
     import uvicorn
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, log_level="warning")
+    from main import app  # Import the actual app object
+
+    uvicorn.run(app, host="127.0.0.1", port=8000, log_level="warning")
+
 
 def main():
     base_path = get_base_path()
-    
+
     # Start the web server in a background daemon thread
     server_thread = threading.Thread(target=start_server, args=(base_path,), daemon=True)
     server_thread.start()
 
-    # Give the server a moment to boot
-    time.sleep(2)
+    # Wait for server to be ready
+    import requests
+    for _ in range(20):
+        time.sleep(0.5)
+        try:
+            r = requests.get("http://127.0.0.1:8000/health", timeout=2)
+            if r.status_code == 200:
+                break
+        except Exception:
+            pass
 
     try:
         import webview
@@ -45,7 +62,7 @@ def main():
         print("=" * 60)
         sys.exit(1)
 
-    # Create a native OS window pointing to the local server
+    # Create a native OS window
     window = webview.create_window(
         title="AI Arena",
         url="http://127.0.0.1:8000",
@@ -55,8 +72,8 @@ def main():
         min_size=(900, 600),
     )
 
-    # Start the GUI event loop (blocks until window is closed)
     webview.start()
+
 
 if __name__ == "__main__":
     main()
